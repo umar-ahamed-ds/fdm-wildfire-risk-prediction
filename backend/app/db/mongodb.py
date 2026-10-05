@@ -23,3 +23,10 @@ client = MongoClient(
 db = client[MONGODB_DB]
 
 predictions_collection = db["predictions"]
+
+# Create indexes safely (may fail if DB is offline during startup/testing)
+try:
+    predictions_collection.create_index("prediction_id", unique=True)
+    predictions_collection.create_index("created_at")
+except Exception as e:
+    print(f"Warning: Failed to create MongoDB indexes on startup: {e}")
