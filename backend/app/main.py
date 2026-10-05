@@ -4,7 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.mongodb import client
-
+from app.core.config import settings
+from app.api.prediction import router as prediction_router
+from app.ml.predictor import predictor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,11 +22,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(prediction_router, prefix="/api/v1")
 
 
 @app.on_event("startup")
@@ -35,6 +39,7 @@ def startup_message():
     print("========================================")
     print("  Backend : FastAPI")
     print("  Database: MongoDB Atlas")
+    print(f"  Model   : {'Loaded' if predictor.model is not None else 'Failed'}")
     print("  Status  : Backend started successfully")
     print("  API     : http://127.0.0.1:8000")
     print("  Docs    : http://127.0.0.1:8000/docs")
@@ -49,11 +54,11 @@ def root():
     }
 
 
-@app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {
-        "status": "healthy",
-        "message": "Backend is working correctly."
+        "status": "ok",
+        "model_loaded": predictor.model is not None
     }
 
 
