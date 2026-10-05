@@ -33,5 +33,3 @@ data/processed/*
 Thumbs.db
 
 # Python model/cache files
-*.pkl
-*.joblib
