@@ -9,9 +9,11 @@ import { predictionApi } from '../../services/predictionApi';
 interface PredictionResultProps {
   response: PredictionResponse;
   requestData: PredictionRequest;
+  onClose?: () => void;
+  onViewHistory?: () => void;
 }
 
-const PredictionResult: React.FC<PredictionResultProps> = ({ response, requestData }) => {
+const PredictionResult: React.FC<PredictionResultProps> = ({ response, requestData, onClose, onViewHistory }) => {
   const resultRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -29,8 +31,18 @@ const PredictionResult: React.FC<PredictionResultProps> = ({ response, requestDa
   };
 
   return (
-    <div ref={resultRef} className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 animate-fade-in-up">
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 mb-6 gap-4">
+    <div ref={resultRef} className="bg-white p-6 md:p-8 rounded-xl shadow-2xl border border-gray-100 animate-fade-in-up relative max-w-4xl w-full mx-auto max-h-[90vh] overflow-y-auto">
+      {onClose && (
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close modal"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      )}
+      
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 mb-6 gap-4 pr-10">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <Activity className="text-blue-600" />
           Prediction Result
@@ -65,14 +77,24 @@ const PredictionResult: React.FC<PredictionResultProps> = ({ response, requestDa
             </div>
           </div>
           
-          <button 
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className="w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-colors disabled:bg-gray-600"
-          >
-            <Download className="w-4 h-4" />
-            {isDownloading ? 'Generating Report...' : 'Download Assessment Report'}
-          </button>
+          <div className="w-full flex flex-col gap-2 mt-2">
+            <button 
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-colors disabled:bg-gray-600"
+            >
+              <Download className="w-4 h-4" />
+              {isDownloading ? 'Generating Report...' : 'Download Assessment Report'}
+            </button>
+            {onViewHistory && (
+              <button 
+                onClick={onViewHistory}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium rounded-lg transition-colors"
+              >
+                View Prediction History
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Guidance */}
