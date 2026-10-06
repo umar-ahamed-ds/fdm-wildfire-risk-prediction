@@ -1,200 +1,367 @@
-# FDM Wildfire Prediction
+🔥Wildfire Risk Prediction System
 
-A machine learning-based wildfire prediction system developed for the Fundamentals of Data Mining (FDM) group project.
+A machine-learning-based wildfire ignition risk prediction system developed as an FDM Mini Project.
 
-## Project Idea
+The system uses environmental and geographical conditions to estimate the probability of wildfire ignition using a trained **XGBoost classification model**. The predicted probability is converted into an easy-to-understand wildfire risk category and presented through a user-friendly web application.
 
-The system will use historical wildfire and environmental data to train machine learning models and predict wildfire-related outcomes for new/unseen data.
+---
 
-## Planned Workflow
+## 📌 Project Overview
 
-Dataset  
-↓  
-Data Cleaning  
-↓  
-Preprocessing  
-↓  
-EDA  
-↓  
-Feature Engineering  
-↓  
-Train/Test Split  
-↓  
-Model Training  
-↓  
-Hyperparameter Tuning  
-↓  
-Model Evaluation  
-↓  
-Final Model  
-↓  
-FastAPI  
-↓  
-React Frontend  
-↓  
-MongoDB
+Wildfire ignition can be influenced by several environmental and geographical conditions such as temperature, humidity, precipitation, wind speed, fuel moisture and atmospheric dryness.
 
-## Technology Stack
+This project develops an end-to-end machine learning system that:
 
-### Frontend
+- Accepts geographical and environmental conditions from the user
+- Validates the provided inputs
+- Processes the required model features
+- Uses a trained XGBoost model to predict wildfire ignition probability
+- Converts the probability into a risk category
+- Provides risk-related guidance
+- Stores prediction records in MongoDB Atlas
+- Displays prediction history
+- Generates downloadable assessment reports
+
+The system is intended to support wildfire preparedness and risk assessment rather than replace official emergency or environmental assessments.
+
+---
+
+## 🎯 Prediction Objective
+
+The objective is to estimate the probability of wildfire ignition based on historical environmental and geographical conditions.
+
+The target variable is:
+
+| Value | Meaning |
+|---|---|
+| `0` | No wildfire ignition |
+| `1` | Wildfire ignition |
+
+The XGBoost model generates a probability for wildfire ignition.
+
+The application then converts the probability into the following risk categories:
+
+| Probability | Risk Level |
+|---|---|
+| `0%` | No Risk |
+| `>0% – 30%` | Low Risk |
+| `31% – 70%` | Medium Risk |
+| `71% – 100%` | High Risk |
+
+These risk categories are application-level classifications based on the model probability.
+
+---
+
+# 🏗️ System Architecture
+
+```text
+                    ┌──────────────────────┐
+                    │        User          │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ React + TypeScript   │
+                    │     Frontend         │
+                    └──────────┬───────────┘
+                               │
+                         REST API Request
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │       FastAPI        │
+                    │       Backend        │
+                    └──────────┬───────────┘
+                               │
+                  ┌────────────┴────────────┐
+                  │                         │
+                  ▼                         ▼
+        ┌──────────────────┐      ┌──────────────────┐
+        │  Input Validation │      │  XGBoost Model   │
+        │    (Pydantic)     │      │                  │
+        └──────────────────┘      └────────┬─────────┘
+                                           │
+                                           ▼
+                                  Wildfire Probability
+                                           │
+                                           ▼
+                                  Risk Classification
+                                           │
+                         ┌─────────────────┴─────────────────┐
+                         │                                   │
+                         ▼                                   ▼
+                ┌──────────────────┐              ┌──────────────────┐
+                │   MongoDB Atlas  │              │ React Frontend   │
+                │ Prediction History│              │ Prediction Result│
+                └──────────────────┘              └──────────────────┘
+```
+
+---
+
+# 🧠 Machine Learning
+
+## Algorithm
+
+The final machine learning model is **XGBoost (Extreme Gradient Boosting)**.
+
+XGBoost is an ensemble learning algorithm based on decision trees. Multiple trees are built sequentially, where each new tree attempts to improve the errors made by previous trees.
+
+It was selected because it performs well on structured/tabular datasets and can model complex relationships between environmental variables.
+
+## Final Model
+
+The trained model is stored as:
+
+```text
+ml/models/xgboost_final.joblib
+```
+
+The corresponding feature layout is stored as:
+
+```text
+ml/models/xgboost_feature_names.joblib
+```
+
+---
+
+# 📊 Model Features
+
+The final model uses 20 features.
+
+### Geographical Features
+
+- Latitude
+- Longitude
+
+### Weather Features
+
+- Precipitation
+- Relative Humidity Maximum
+- Relative Humidity Minimum
+- Specific Humidity
+- Solar Radiation
+- Minimum Temperature
+- Maximum Temperature
+- Wind Speed
+
+### Fire / Fuel Features
+
+- Burning Index
+- Fuel Moisture 100hr
+- Fuel Moisture 1000hr
+- Energy Release Component
+
+### Atmospheric Features
+
+- Reference Evapotranspiration
+- Potential Evapotranspiration
+- Vapor Pressure Deficit
+
+### Date Features
+
+- Year
+- Month
+- Day of Year
+
+The user provides the assessment date, and the backend derives the required date features automatically.
+
+---
+
+# 🖥️ Technology Stack
+
+## Frontend
+
 - React
 - TypeScript
-- Vite
 - Tailwind CSS
+- Vite
 - Axios
-- React Router
-- Recharts
 - React Hook Form
-- Lucide React
-- Oxlint
+- Recharts
 
-### Backend
+## Backend
+
 - Python
 - FastAPI
-- Uvicorn
 - Pydantic
+- Pandas
+- XGBoost
+- Joblib
+- Uvicorn
+
+## Database
+
+- MongoDB Atlas
 - PyMongo
 
-### Machine Learning
+## Machine Learning
+
+- XGBoost
+- Scikit-learn
 - Pandas
 - NumPy
-- Scikit-learn
-- Imbalanced-learn
-- Joblib
-- Matplotlib
 
-### Database
-- MongoDB Atlas
+---
 
-## Project Structure
+# 📁 Project Structure
 
 ```text
 fdm-mini-project/
 │
-├── frontend/              # React frontend
-│   └── src/
-│       ├── components/    # Reusable UI components
-│       ├── pages/         # Application pages
-│       ├── services/      # API communication
-│       ├── layouts/       # Page layouts
-│       ├── hooks/         # React hooks
-│       ├── types/         # TypeScript types
-│       └── assets/        # Images/assets
-│
-├── backend/               # FastAPI backend
+├── backend/
 │   ├── app/
-│   │   ├── api/           # API routes
-│   │   ├── core/          # Configuration
-│   │   ├── db/            # MongoDB connection
-│   │   ├── schemas/       # Pydantic schemas
-│   │   ├── services/      # Backend logic
-│   │   ├── ml/            # Model prediction/loading
-│   │   └── main.py        # FastAPI entry point
+│   │   ├── api/
+│   │   │   └── prediction.py
+│   │   ├── core/
+│   │   │   └── config.py
+│   │   ├── db/
+│   │   ├── ml/
+│   │   │   └── predictor.py
+│   │   ├── schemas/
+│   │   │   └── prediction.py
+│   │   ├── services/
+│   │   │   └── prediction_service.py
+│   │   └── main.py
 │   ├── tests/
+│   │   └── test_prediction.py
+│   ├── .env
 │   ├── .env.example
 │   ├── package.json
 │   └── requirements.txt
 │
-├── ml/                    # Machine learning
-│   ├── notebooks/         # Jupyter notebooks
-│   ├── src/               # ML source code
-│   └── artifacts/         # Trained models
+├── frontend/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── types/
+│   │   ├── App.tsx
+│   │   ├── App.css
+│   │   └── index.css
+│   ├── .env
+│   ├── .env.example
+│   └── package.json
+│
+├── ml/
+│   ├── models/
+│   │   ├── xgboost_final.joblib
+│   │   └── xgboost_feature_names.joblib
+│   ├── notebooks/
+│   │   ├── 01_data_understanding.ipynb
+│   │   ├── 02_data_preprocessing.ipynb
+│   │   ├── 03_data_preparation.ipynb
+│   │   ├── 04_decision_tree.ipynb
+│   │   ├── 04_logistic_regression.ipynb
+│   │   ├── 04_random_forest.ipynb
+│   │   └── 04_xgboost_model.ipynb
+│   └── ...
 │
 ├── data/
-│   ├── raw/               # Original dataset
-│   ├── processed/         # Cleaned dataset
-│   └── README.md
-│
 ├── docs/
-│   ├── sow/               # Statement of Work
-│   ├── diagrams/          # System diagrams
-│   └── report/            # Final report
-│
-├── tests/                 # Project tests
 ├── .gitignore
 └── README.md
 ```
 
-## MongoDB
+---
 
-MongoDB Atlas is used for application data such as prediction history.
+# 🔌 Backend API
 
-```text
-DataNexus DS Team
-└── FDM Wildfire Prediction
-    └── FDM-Wildfire-Cluster
-        └── wildfire_prediction
-            └── predictions
-```
+The backend provides REST API endpoints for prediction, history, reports and system health.
 
-The main wildfire training dataset will be kept in `data/` rather than stored entirely in MongoDB.
+## API Documentation
 
-## Environment Setup
-
-### Requirements
-
-- Node.js
-- npm
-- Python 3.11+
-- Git
-- MongoDB Atlas
-
-## Frontend
-
-Open a terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend:
-
-```text
-http://localhost:5173
-```
-
-## Backend
-
-Open a second terminal:
-
-```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-npm start
-```
-
-Backend:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger:
+When the backend is running:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-Health checks:
+FastAPI provides an interactive Swagger interface for testing the API.
 
-```text
-http://127.0.0.1:8000/api/health
-http://127.0.0.1:8000/api/database-health
+## Main Endpoints
+
+### Predict Wildfire Risk
+
+```http
+POST /api/v1/predictions
 ```
 
-## Backend Environment
+Receives environmental and geographical conditions and returns the wildfire prediction.
 
-Create:
+### Get Prediction History
 
-```text
-backend/.env
+```http
+GET /api/v1/predictions
 ```
 
-Add:
+Returns previously saved prediction records.
+
+### Get Individual Prediction
+
+```http
+GET /api/v1/predictions/{prediction_id}
+```
+
+Returns a specific prediction.
+
+### Download Prediction Report
+
+```http
+GET /api/v1/predictions/{prediction_id}/report
+```
+
+Returns the assessment report for a prediction.
+
+### Health Check
+
+```http
+GET /health
+```
+
+Checks whether the backend is running.
+
+### Database Health
+
+```http
+GET /api/database-health
+```
+
+Checks the MongoDB connection.
+
+---
+
+# 🚀 Running the Project
+
+## Backend Setup
+
+Navigate to the backend:
+
+```powershell
+cd backend
+```
+
+Create a virtual environment:
+
+```powershell
+python -m venv .venv
+```
+
+Activate it:
+
+```powershell
+.\.venv\Scripts\activate
+```
+
+Install dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Create a `.env` file:
 
 ```env
 MONGODB_URI=your_mongodb_connection_string
@@ -202,118 +369,256 @@ MONGODB_DB=wildfire_prediction
 FRONTEND_URL=http://localhost:5173
 ```
 
-Never commit the real `.env` file.
-
-## Run Full Project
-
-### Terminal 1 — Frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-### Terminal 2 — Backend
+Start the backend:
 
 ```powershell
-cd backend
-.venv\Scripts\Activate.ps1
 npm start
 ```
 
-## Architecture
+The backend will run at:
 
 ```text
-React Frontend
-      ↓
-FastAPI Backend
-      ↓
-Machine Learning Model
-      ↓
-Prediction
-      ↓
-MongoDB
+http://127.0.0.1:8000
 ```
 
-## Development Stages
+Swagger documentation:
 
 ```text
-1. Environment Setup
-2. Dataset Selection
-3. Dataset Understanding
-4. Data Cleaning
-5. Data Preprocessing
-6. EDA
-7. Feature Engineering
-8. Model Training
-9. Hyperparameter Tuning
-10. Model Evaluation
-11. Final Model
-12. FastAPI Prediction API
-13. React Prediction UI
-14. MongoDB Prediction History
-15. Testing
-16. Documentation
+http://127.0.0.1:8000/docs
 ```
 
-## Git Workflow
+---
 
-Create a feature branch:
+# Frontend Setup
 
-```bash
-git checkout -b feature/your-feature-name
+Open another terminal:
+
+```powershell
+cd frontend
 ```
 
-Commit:
+Install dependencies:
 
-```bash
-git add .
-git commit -m "feat: description"
+```powershell
+npm install
 ```
 
-Push:
+Create the frontend `.env` file:
 
-```bash
-git push origin feature/your-feature-name
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-Create a Pull Request to `main`.
+Start the frontend:
 
-## Security
+```powershell
+npm run dev
+```
 
-Never commit:
+The application will normally be available at:
 
 ```text
-.env
-MongoDB passwords
-API keys
-Secret keys
-Large private datasets
+http://localhost:5173
 ```
 
-## Current Status
+---
 
-- [x] GitHub repository
-- [x] Project structure
-- [x] React + Vite + TypeScript
-- [x] Tailwind CSS
-- [x] FastAPI
-- [x] Uvicorn
-- [x] MongoDB Atlas
-- [x] FastAPI → MongoDB connection
-- [x] Basic health endpoints
-- [ ] Final dataset analysis
-- [ ] Data preprocessing
-- [ ] EDA
-- [ ] Feature engineering
-- [ ] ML model training
-- [ ] Model evaluation
-- [ ] Prediction API
-- [ ] Prediction frontend
-- [ ] Prediction history
-- [ ] Final testing
-- [ ] Final documentation
+# 🔄 Prediction Workflow
 
-## Academic Project
+```text
+1. User opens the application
+          ↓
+2. User selects "Predict Wildfire Risk"
+          ↓
+3. User enters location and environmental conditions
+          ↓
+4. Frontend validates the input
+          ↓
+5. Frontend sends POST request
+          ↓
+6. FastAPI validates the request
+          ↓
+7. Backend prepares the 20 model features
+          ↓
+8. Trained XGBoost model is loaded
+          ↓
+9. Model generates wildfire probability
+          ↓
+10. Probability is converted to risk level
+          ↓
+11. Prediction is saved to MongoDB Atlas
+          ↓
+12. Result is returned to React
+          ↓
+13. Prediction result is displayed
+          ↓
+14. User can download the assessment report
+```
 
-This project is developed as part of the Fundamentals of Data Mining module and is intended for academic purposes.
+---
+
+# 🧪 Input Validation
+
+The system validates inputs on both the frontend and backend.
+
+Examples include:
+
+- Latitude between `-90` and `90`
+- Longitude between `-180` and `180`
+- Relative humidity between `0` and `100`
+- Non-negative precipitation
+- Non-negative wind speed
+- Required environmental fields
+- Valid assessment date
+
+Invalid input is rejected before prediction is performed.
+
+---
+
+# 📈 Prediction Output
+
+A prediction response contains information such as:
+
+```json
+{
+  "probability": 0.765,
+  "percentage": 76.5,
+  "risk_level": "High Risk",
+  "model_name": "XGBoost",
+  "assessment_date": "2026-10-05",
+  "location": {
+    "latitude": 7.29,
+    "longitude": 80.63
+  }
+}
+```
+
+The frontend presents the result using:
+
+- Risk probability
+- Risk level
+- Risk gauge
+- Location
+- Assessment date
+- Risk guidance
+- Environmental summary
+- Prediction ID
+
+---
+
+# 🗄️ MongoDB Integration
+
+MongoDB Atlas is used to store prediction records.
+
+Stored information includes:
+
+- Prediction ID
+- User-provided environmental conditions
+- Latitude
+- Longitude
+- Assessment date
+- Prediction probability
+- Risk level
+- Model information
+- Prediction metadata
+
+The stored records are used by the Prediction History feature.
+
+---
+
+# 📄 Assessment Reports
+
+The system provides downloadable prediction assessment reports.
+
+A report can contain:
+
+- Prediction details
+- Location
+- Assessment date
+- Environmental conditions
+- Predicted probability
+- Risk level
+- Risk guidance
+- Model information
+
+Reports can be downloaded from the prediction result and prediction history.
+
+---
+
+# 🧪 System Testing
+
+The backend includes automated tests using `pytest`.
+
+Testing covers areas such as:
+
+- API health checks
+- Input validation
+- Risk classification
+- Prediction functionality
+- Model integration
+- End-to-end prediction flow
+
+Run tests using:
+
+```powershell
+pytest
+```
+
+---
+
+# ⚠️ Limitations
+
+- The prediction is based on historical patterns learned by the machine learning model.
+- The system does not guarantee that a wildfire will or will not occur.
+- It does not replace official wildfire warnings or professional environmental assessments.
+- Prediction quality depends on the quality and representativeness of the training data.
+- Environmental conditions entered by the user may differ from actual conditions.
+- The current system does not provide live wildfire detection.
+
+---
+
+# 🔮 Future Improvements
+
+Possible future improvements include:
+
+- Integration with live weather data
+- Satellite-based wildfire monitoring
+- Interactive geographical risk maps
+- Real-time environmental data
+- Automated alerts for high-risk conditions
+- Improved location identification through reverse geocoding
+- Model retraining using newer wildfire datasets
+- Explainable AI for understanding important prediction factors
+- Deployment to a cloud environment
+
+---
+
+# 👥 Project
+
+**FDM Mini Project – Wildfire Risk Prediction System**
+
+Developed as part of the **Fundamentals of Data Mining (FDM)** module.
+
+### Technology Focus
+
+```text
+Machine Learning
+Data Mining
+XGBoost
+React
+FastAPI
+MongoDB Atlas
+```
+
+---
+
+## ⚠️ Disclaimer
+
+This system provides a **machine-learning-based estimate of wildfire ignition probability** for educational and analytical purposes.
+
+It should not be used as a replacement for official emergency warnings, professional wildfire assessments, or disaster-management authorities.
+
+---
+
+**FDM Wildfire Risk Prediction System © 2026**
+'''
