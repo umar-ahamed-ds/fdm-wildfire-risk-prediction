@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Flame,
   ClipboardList,
@@ -7,7 +7,6 @@ import {
   Gauge,
   ShieldAlert,
   Thermometer,
-  Gauge as GaugeIcon,
   History,
   FileBarChart2,
   Menu,
@@ -16,6 +15,48 @@ import {
   Compass,
   ArrowDown,
 } from "lucide-react";
+
+/**
+ * Wildfire Risk Dashboard — Landing Page
+ * ---------------------------------------
+ * Routes (existing app routes, nothing new is created):
+ *   /          Home
+ *   /predict   Predict Risk / Predict Wildfire Risk
+ *   /history   Prediction History / View Prediction History
+ *
+ * IMAGES — loaded directly from Unsplash's image CDN (no local files needed).
+ * All three are free to use under the Unsplash License:
+ *   hero          Smoke plume from the Calwood Fire, Colorado — Malachi Brooks
+ *                 https://unsplash.com/photos/-HVh7BRp3ls
+ *   environment   Forested mountain terrain under smoke-filled sky — Malachi Brooks
+ *                 https://unsplash.com/photos/EvJhJ75NwAc
+ *   preparedness  Smoke rising through tall pine trees — Erik Morales
+ *                 https://unsplash.com/photos/bvtfI41Hwj4
+ *
+ * Fallbacks: the hero keeps a charcoal -> ember gradient under the photo, and
+ * the section images swap to a warm gradient placeholder if a URL fails.
+ */
+
+const IMG_PARAMS = "auto=format&fit=crop&q=70";
+
+const WILDFIRE_IMAGES = {
+  hero: {
+    src: `https://images.unsplash.com/photo-1602980085374-7e743fff3cc6?${IMG_PARAMS}&w=2000`,
+    alt: "Smoke plume rising above a forested mountainside from a distant wildfire",
+  },
+  environment: {
+    src: `https://images.unsplash.com/photo-1602980085421-578025fd903d?${IMG_PARAMS}&w=1200`,
+    alt: "Forested mountain terrain under a smoke-filled sky",
+  },
+  preparedness: {
+    src: `https://images.unsplash.com/photo-1764639568022-e78a62df2851?${IMG_PARAMS}&w=1200`,
+    alt: "Smoke rising through tall pine trees in a dry forest",
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Data                                                                */
+/* ------------------------------------------------------------------ */
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -28,7 +69,7 @@ const STEPS = [
     number: "01",
     icon: ClipboardList,
     title: "Enter Conditions",
-    description: "Provide the location, assessment date and environmental conditions.",
+    description: "Provide location, assessment date and environmental conditions.",
   },
   {
     number: "02",
@@ -40,13 +81,15 @@ const STEPS = [
     number: "03",
     icon: Gauge,
     title: "Risk Assessment",
-    description: "The system estimates the probability of wildfire ignition.",
+    description:
+      "The system estimates wildfire ignition probability and assigns a risk level.",
   },
   {
     number: "04",
     icon: ShieldAlert,
     title: "Take Action",
-    description: "Use the risk level and guidance to support preparedness.",
+    description:
+      "Use the assessment and guidance to support appropriate preparedness decisions.",
   },
 ];
 
@@ -54,22 +97,24 @@ const CAPABILITIES = [
   {
     icon: BrainCircuit,
     title: "Machine Learning Prediction",
-    description: "Estimate wildfire ignition probability using the trained XGBoost model.",
+    description:
+      "Estimate wildfire ignition probability using the trained XGBoost model.",
     wide: true,
   },
   {
     icon: Thermometer,
-    title: "Environmental Analysis",
-    description: "Analyze geographical and environmental conditions associated with wildfire ignition.",
+    title: "Environmental Condition Analysis",
+    description:
+      "Analyze geographical and environmental conditions associated with wildfire ignition.",
   },
   {
-    icon: GaugeIcon,
+    icon: Gauge,
     title: "Risk Classification",
     description: "Convert prediction probability into clear risk categories.",
   },
   {
     icon: ShieldAlert,
-    title: "Actionable Guidance",
+    title: "Actionable Risk Guidance",
     description: "Provide practical guidance based on the predicted risk level.",
   },
   {
@@ -90,7 +135,7 @@ const RISK_LEVELS = [
     range: "0%",
     color: "#2F6B45",
     bg: "#EAF2EC",
-    description: "No ignition probability detected for the given conditions.",
+    description: "No ignition probability predicted for the given conditions.",
   },
   {
     label: "Low Risk",
@@ -122,6 +167,17 @@ const FLOW_STEPS = [
   { icon: Compass, label: "Preparedness" },
 ];
 
+const HERO_TAGS = [
+  "Environmental Conditions",
+  "XGBoost Model",
+  "Risk Classification",
+  "Preparedness Guidance",
+];
+
+/* ------------------------------------------------------------------ */
+/* Scroll reveal                                                       */
+/* ------------------------------------------------------------------ */
+
 function useReveal<T extends HTMLElement>() {
   const ref = React.useRef<T | null>(null);
   const [visible, setVisible] = React.useState(false);
@@ -133,7 +189,7 @@ function useReveal<T extends HTMLElement>() {
     const prefersReduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
-    if (prefersReduced) {
+    if (prefersReduced || typeof IntersectionObserver === "undefined") {
       setVisible(true);
       return;
     }
@@ -174,13 +230,62 @@ function Reveal({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Photo card: rounded, object-cover, lazy, hover zoom, graceful fail  */
+/* ------------------------------------------------------------------ */
+
+function PhotoCard({
+  src,
+  alt,
+  className = "",
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = React.useState(false);
+
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#3B1A10] via-[#7A2B14] to-[#E2631F] shadow-[0_8px_28px_rgba(30,35,48,0.14)] ${className}`}
+    >
+      {!failed && (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+        />
+      )}
+      {/* soft warm tint so photos sit inside the cream/ember palette */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#171B22]/35 via-transparent to-transparent"
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Navbar (exported, may be reused by other pages)                     */
+/* ------------------------------------------------------------------ */
+
 export function Navbar() {
   const [open, setOpen] = React.useState(false);
+  const { pathname } = useLocation();
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#E3D9C6] bg-[#F6EFE4]/90 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
-        <Link to="/" className="flex items-center gap-3">
+        <Link
+          to="/"
+          className="flex items-center gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F]"
+        >
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#E2631F] to-[#B3261E] text-white shadow-sm">
             <Flame className="h-5 w-5" strokeWidth={2} />
           </span>
@@ -195,18 +300,26 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className={`relative py-1 text-sm text-[#55524A] transition-colors duration-150 hover:text-[#1E2330] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F] after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-0 after:bg-[#E2631F] after:transition-all after:duration-200 hover:after:w-full ${link.href === '/' ? 'aria-[current=page]:text-[#1E2330] aria-[current=page]:after:w-full' : ''}`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = isActive(link.href);
+            return (
+              <Link
+                key={link.label}
+                to={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`relative py-1 text-sm transition-colors duration-150 hover:text-[#1E2330] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F] after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:bg-[#E2631F] after:transition-all after:duration-200 ${
+                  active
+                    ? "font-medium text-[#1E2330] after:w-full"
+                    : "text-[#55524A] after:w-0 hover:after:w-full"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           <Link
             to="/predict"
-            className="rounded-full bg-gradient-to-r from-[#E2631F] to-[#C84A1A] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:shadow-md hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F]"
+            className="rounded-full bg-gradient-to-r from-[#E2631F] to-[#C84A1A] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F]"
           >
             Predict Wildfire Risk
           </Link>
@@ -217,6 +330,7 @@ export function Navbar() {
           className="inline-flex items-center justify-center rounded-md p-2 text-[#1E2330] md:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E2631F]"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
+          aria-controls="mobile-nav"
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -225,20 +339,29 @@ export function Navbar() {
 
       {open && (
         <nav
+          id="mobile-nav"
           className="border-t border-[#E3D9C6] bg-[#F6EFE4] px-6 pb-6 pt-2 md:hidden"
           aria-label="Primary mobile"
         >
           <div className="flex flex-col gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.label}
-                to={link.href}
-                className="rounded-md px-2 py-3 text-sm text-[#55524A] hover:bg-[#EDE4D6] hover:text-[#1E2330] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E2631F]"
-                onClick={() => setOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const active = isActive(link.href);
+              return (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`rounded-md px-3 py-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E2631F] ${
+                    active
+                      ? "bg-[#EDE4D6] font-medium text-[#1E2330]"
+                      : "text-[#55524A] hover:bg-[#EDE4D6] hover:text-[#1E2330]"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
             <Link
               to="/predict"
               className="mt-2 rounded-full bg-gradient-to-r from-[#E2631F] to-[#C84A1A] px-5 py-3 text-center text-sm font-medium text-white"
@@ -253,27 +376,51 @@ export function Navbar() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Sections                                                            */
+/* ------------------------------------------------------------------ */
+
 function Hero() {
   return (
     <section
       id="home"
-      className="wfd-hero relative overflow-hidden bg-[#171B22] px-6 py-24 md:py-32"
+      className="wfd-hero relative flex min-h-[34rem] items-center overflow-hidden bg-[#171B22] px-6 py-24 md:min-h-[42rem] md:py-32"
     >
-      <div className="wfd-hero-glow pointer-events-none absolute inset-0" />
-      <div className="wfd-particles pointer-events-none absolute inset-0" aria-hidden="true">
+      {/* 1. Background photo (slow zoom/pan). Gradient is the fallback layer. */}
+      <div
+        className="wfd-hero-bg absolute inset-0"
+        style={{
+          backgroundImage: `url("${WILDFIRE_IMAGES.hero.src}"), linear-gradient(135deg, #171B22 0%, #3B1A10 60%, #7A2B14 100%)`,
+        }}
+        role="img"
+        aria-label={WILDFIRE_IMAGES.hero.alt}
+      />
+
+      {/* 2. Dark navy overlay fading into a subtle red/orange tone */}
+      <div
+        className="wfd-hero-overlay pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
+
+      {/* 3. Very subtle embers */}
+      <div
+        className="wfd-particles pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      >
         {Array.from({ length: 8 }).map((_, i) => (
           <span key={i} className={`wfd-particle wfd-particle-${i + 1}`} />
         ))}
       </div>
 
-      <div className="relative mx-auto max-w-4xl text-center">
+      {/* 4. Content */}
+      <div className="relative mx-auto w-full max-w-4xl text-center">
         <Reveal>
-          <h1 className="font-serif text-4xl font-medium leading-[1.12] text-[#F6EFE4] sm:text-5xl md:text-6xl">
+          <h1 className="font-serif text-4xl font-medium leading-[1.12] text-[#F6EFE4] [text-shadow:0_2px_24px_rgba(0,0,0,0.5)] sm:text-5xl md:text-6xl">
             Predict wildfire risk before it becomes a threat
           </h1>
         </Reveal>
         <Reveal className="delay-150">
-          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#F6EFE4]/70 sm:text-lg">
+          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#F6EFE4]/85 [text-shadow:0_1px_12px_rgba(0,0,0,0.5)] sm:text-lg">
             Assess wildfire ignition probability using environmental and
             geographical conditions with a machine-learning-powered risk
             prediction system.
@@ -283,17 +430,30 @@ function Hero() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               to="/predict"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#E2631F] to-[#B3261E] px-8 py-3.5 text-sm font-medium text-white shadow-lg shadow-black/20 transition-all duration-150 hover:shadow-xl hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F]"
+              className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#E2631F] to-[#B3261E] px-8 py-3.5 text-sm font-medium text-white shadow-lg shadow-black/30 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E2631F] sm:w-auto"
             >
               Predict Wildfire Risk
             </Link>
             <Link
               to="/history"
-              className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-medium text-[#F6EFE4] backdrop-blur-sm transition-all duration-150 hover:border-white/35 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              className="inline-flex w-full items-center justify-center rounded-full border border-white/25 bg-white/5 px-8 py-3.5 text-sm font-medium text-[#F6EFE4] transition-all duration-150 hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:w-auto"
             >
               View Prediction History
             </Link>
           </div>
+        </Reveal>
+        <Reveal className="delay-300">
+          <ul className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#F6EFE4]/60">
+            {HERO_TAGS.map((tag) => (
+              <li key={tag} className="flex items-center gap-2">
+                <span
+                  className="h-1 w-1 rounded-full bg-[#E2631F]"
+                  aria-hidden="true"
+                />
+                {tag}
+              </li>
+            ))}
+          </ul>
         </Reveal>
       </div>
     </section>
@@ -302,18 +462,28 @@ function Hero() {
 
 function QuickIntro() {
   return (
-    <section className="bg-[#F6EFE4] px-6 py-16">
-      <Reveal className="mx-auto max-w-2xl text-center">
-        <h2 className="font-serif text-2xl font-medium text-[#1E2330] sm:text-3xl">
-          Understand wildfire risk from environmental conditions
-        </h2>
-        <p className="mt-4 text-sm leading-relaxed text-[#55524A] sm:text-base">
-          Wildfire ignition can be influenced by temperature, humidity,
-          precipitation, wind, fuel moisture and atmospheric conditions. Our
-          system analyzes these conditions using a trained XGBoost model to
-          estimate wildfire ignition probability.
-        </p>
-      </Reveal>
+    <section className="bg-[#F6EFE4] px-6 py-20">
+      <div className="mx-auto grid max-w-7xl items-center gap-10 md:grid-cols-2 md:gap-14">
+        <Reveal>
+          <h2 className="font-serif text-2xl font-medium text-[#1E2330] sm:text-3xl">
+            Understand wildfire risk from environmental conditions
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-[#55524A] sm:text-base">
+            Wildfire ignition can be influenced by temperature, humidity,
+            precipitation, wind, fuel moisture and atmospheric conditions.
+            This system analyzes the conditions you provide using a trained
+            XGBoost model to estimate wildfire ignition probability.
+          </p>
+        </Reveal>
+
+        <Reveal>
+          <PhotoCard
+            src={WILDFIRE_IMAGES.environment.src}
+            alt={WILDFIRE_IMAGES.environment.alt}
+            className="aspect-[4/3] w-full"
+          />
+        </Reveal>
+      </div>
     </section>
   );
 }
@@ -324,7 +494,7 @@ function HowItWorks() {
       <div className="mx-auto max-w-7xl">
         <Reveal>
           <h2 className="font-serif text-3xl font-medium text-[#1E2330] sm:text-4xl">
-            How wildfire risk assessment works
+            How Wildfire Risk Assessment Works
           </h2>
         </Reveal>
 
@@ -339,7 +509,7 @@ function HowItWorks() {
               <Reveal key={step.number} className="relative">
                 <div className="relative z-10 flex items-center gap-2.5">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F6EFE4] text-[#E2631F] ring-4 ring-white">
-                    <Icon className="h-4.5 w-4.5" strokeWidth={2} />
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
                   </span>
                   <span
                     className="font-serif text-xl text-[#1E2330]/20"
@@ -369,7 +539,7 @@ function Capabilities() {
       <div className="mx-auto max-w-7xl">
         <Reveal>
           <h2 className="font-serif text-3xl font-medium text-[#1E2330] sm:text-4xl">
-            Built for wildfire risk assessment
+            Built for Wildfire Risk Assessment
           </h2>
         </Reveal>
 
@@ -381,8 +551,8 @@ function Capabilities() {
                 key={item.title}
                 className={item.wide ? "md:col-span-2" : ""}
               >
-                <div className="group h-full rounded-2xl border border-[#E3D9C6] bg-white p-7 shadow-[0_1px_2px_rgba(30,35,48,0.04)] transition-shadow duration-150 hover:shadow-[0_6px_20px_rgba(30,35,48,0.08)]">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F6EFE4] text-[#1E2330] transition-colors duration-150 group-hover:bg-gradient-to-br group-hover:from-[#E2631F] group-hover:to-[#B3261E] group-hover:text-white">
+                <div className="group h-full rounded-2xl border border-[#E3D9C6] bg-white p-7 shadow-[0_1px_2px_rgba(30,35,48,0.04)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(30,35,48,0.10)]">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F6EFE4] text-[#1E2330] transition-colors duration-200 group-hover:bg-gradient-to-br group-hover:from-[#E2631F] group-hover:to-[#B3261E] group-hover:text-white">
                     <Icon className="h-5 w-5" strokeWidth={1.75} />
                   </span>
                   <h3 className="mt-5 text-base font-medium text-[#1E2330]">
@@ -407,7 +577,7 @@ function RiskLevels() {
       <div className="mx-auto max-w-7xl">
         <Reveal>
           <h2 className="font-serif text-3xl font-medium text-[#1E2330] sm:text-4xl">
-            Understand your risk level
+            Understand the Risk Levels
           </h2>
         </Reveal>
 
@@ -415,21 +585,19 @@ function RiskLevels() {
           {RISK_LEVELS.map((level) => (
             <Reveal key={level.label}>
               <div
-                className="h-full rounded-2xl border border-black/5 p-6"
-                style={{ backgroundColor: level.bg }}
+                className="h-full rounded-2xl border border-black/5 p-6 transition-transform duration-200 hover:-translate-y-1"
+                style={{
+                  backgroundColor: level.bg,
+                  borderTop: `4px solid ${level.color}`,
+                }}
               >
-                <span
-                  className="inline-flex h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: level.color }}
-                  aria-hidden="true"
-                />
                 <p
-                  className="mt-4 text-xs font-medium uppercase tracking-wide"
+                  className="text-xs font-semibold uppercase tracking-wide"
                   style={{ color: level.color }}
                 >
                   {level.label}
                 </p>
-                <p className="mt-1 font-serif text-2xl text-[#1E2330]">
+                <p className="mt-2 font-serif text-3xl text-[#1E2330]">
                   {level.range}
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-[#55524A]">
@@ -442,9 +610,8 @@ function RiskLevels() {
 
         <Reveal className="mt-8">
           <p className="max-w-2xl text-sm leading-relaxed text-[#766F62]">
-            These risk categories are application-level classifications based
-            on the predicted probability. They are not original labels from
-            the dataset.
+            These categories are application-level classifications based on
+            the predicted wildfire ignition probability.
           </p>
         </Reveal>
       </div>
@@ -455,21 +622,27 @@ function RiskLevels() {
 function PredictionToPreparedness() {
   return (
     <section className="bg-[#F6EFE4] px-6 py-20">
-      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.1fr_0.9fr] md:items-center">
         <Reveal>
           <h2 className="font-serif text-3xl font-medium leading-tight text-[#1E2330] sm:text-4xl">
-            From prediction to preparedness
+            From Prediction to Preparedness
           </h2>
-          <p className="mt-5 max-w-md text-sm leading-relaxed text-[#55524A] sm:text-base">
+          <p className="mt-5 max-w-lg text-sm leading-relaxed text-[#55524A] sm:text-base">
             Early identification of potentially high-risk conditions can help
             users improve monitoring, prepare resources and follow
             appropriate fire and disaster-management guidance.
           </p>
-          <p className="mt-4 max-w-md text-xs leading-relaxed text-[#766F62]">
+          <p className="mt-4 max-w-lg text-xs leading-relaxed text-[#766F62]">
             This does not guarantee the prevention of a wildfire — it
             supports awareness and preparedness based on the conditions
             provided.
           </p>
+
+          <PhotoCard
+            src={WILDFIRE_IMAGES.preparedness.src}
+            alt={WILDFIRE_IMAGES.preparedness.alt}
+            className="mt-8 aspect-[16/10] w-full max-w-lg"
+          />
         </Reveal>
 
         <Reveal>
@@ -481,7 +654,7 @@ function PredictionToPreparedness() {
                 <React.Fragment key={step.label}>
                   <div className="flex w-full items-center gap-4 rounded-xl border border-[#E3D9C6] bg-white px-5 py-4 shadow-sm">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E2631F] to-[#B3261E] text-white">
-                      <Icon className="h-4.5 w-4.5" strokeWidth={2} />
+                      <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
                     </span>
                     <span className="text-sm font-medium text-[#1E2330]">
                       {step.label}
@@ -508,7 +681,7 @@ function FinalCTA() {
     <section className="relative overflow-hidden bg-gradient-to-br from-[#171B22] via-[#7A2B14] to-[#E2631F] px-6 py-20">
       <Reveal className="relative mx-auto max-w-3xl text-center">
         <h2 className="font-serif text-3xl font-medium text-white sm:text-4xl">
-          Ready to assess wildfire risk?
+          Ready to Assess Wildfire Risk?
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80">
           Enter environmental and geographical conditions to generate a
@@ -516,7 +689,7 @@ function FinalCTA() {
         </p>
         <Link
           to="/predict"
-          className="mt-8 inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-sm font-medium text-[#1E2330] shadow-lg transition-all duration-150 hover:shadow-xl hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          className="mt-8 inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-sm font-medium text-[#1E2330] shadow-lg transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
           Predict Wildfire Risk
         </Link>
@@ -525,9 +698,13 @@ function FinalCTA() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Footer (exported, may be reused by other pages)                     */
+/* ------------------------------------------------------------------ */
+
 export function Footer() {
   return (
-    <footer className="bg-[#171B22] px-6 pb-10 pt-8 mt-auto">
+    <footer className="mt-auto bg-[#171B22] px-6 pb-10 pt-8">
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-2 border-t border-white/10 pt-8 text-center">
         <div className="flex items-center gap-2 text-white/80">
           <Flame className="h-4 w-4 text-[#E2631F]" strokeWidth={2} />
@@ -542,9 +719,13 @@ export function Footer() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
+
 export default function WildfireRiskLandingPage() {
   return (
-    <div className="min-h-screen bg-[#F6EFE4] font-sans text-[#1E2330] flex flex-col">
+    <div className="flex min-h-screen flex-col bg-[#F6EFE4] font-sans text-[#1E2330]">
       <Navbar />
       <main className="flex-grow">
         <Hero />
@@ -558,16 +739,36 @@ export default function WildfireRiskLandingPage() {
       <Footer />
 
       <style>{`
-        .wfd-hero-glow {
+        /* Hero background: image is set inline (remote URL); sizing + motion here */
+        .wfd-hero-bg {
+          background-size: cover;
+          background-position: 62% center;
+          background-repeat: no-repeat;
+          transform-origin: 60% 50%;
+          will-change: transform;
+          animation: wfd-kenburns 32s ease-in-out infinite alternate;
+        }
+        @media (min-width: 768px) {
+          .wfd-hero-bg { background-position: center; }
+        }
+        @keyframes wfd-kenburns {
+          from { transform: scale(1); }
+          to   { transform: scale(1.08) translate3d(-1%, -1%, 0); }
+        }
+
+        /* Navy/black -> dark -> subtle red/orange overlay (keeps text readable) */
+        .wfd-hero-overlay {
           background:
-            radial-gradient(circle at 20% 20%, rgba(226, 99, 31, 0.22) 0%, transparent 45%),
-            radial-gradient(circle at 80% 70%, rgba(179, 38, 30, 0.22) 0%, transparent 50%);
-          animation: wfd-breathe 8s ease-in-out infinite;
+            linear-gradient(to bottom,
+              rgba(10, 14, 22, 0.80) 0%,
+              rgba(10, 14, 22, 0.62) 45%,
+              rgba(95, 28, 14, 0.62) 100%),
+            radial-gradient(ellipse at 50% 100%,
+              rgba(226, 99, 31, 0.20) 0%,
+              transparent 60%);
         }
-        @keyframes wfd-breathe {
-          0%, 100% { opacity: 0.8; }
-          50% { opacity: 1; }
-        }
+
+        /* Embers */
         .wfd-particle {
           position: absolute;
           width: 3px;
@@ -588,10 +789,12 @@ export default function WildfireRiskLandingPage() {
           0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
           50% { transform: translateY(-28px) scale(1.4); opacity: 0.9; }
         }
+
         .delay-150 { transition-delay: 150ms; }
         .delay-300 { transition-delay: 300ms; }
+
         @media (prefers-reduced-motion: reduce) {
-          .wfd-hero-glow, .wfd-particle { animation: none !important; }
+          .wfd-hero-bg, .wfd-particle { animation: none !important; }
         }
       `}</style>
     </div>

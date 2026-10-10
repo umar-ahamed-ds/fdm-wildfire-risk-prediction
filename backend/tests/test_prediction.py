@@ -42,7 +42,7 @@ def test_risk_category_conversion():
 valid_payload = {
     "latitude": 7.29,
     "longitude": 80.63,
-    "assessment_date": "2026-10-05",
+    "assessment_date": date.today().isoformat(),
     "precipitation": 12.5,
     "relative_humidity_max": 85.0,
     "relative_humidity_min": 60.0,

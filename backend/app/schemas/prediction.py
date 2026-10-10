@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from typing import Optional, List
 
@@ -21,6 +21,13 @@ class PredictionRequest(BaseModel):
     reference_evapotranspiration: float = Field(..., description="Reference evapotranspiration")
     potential_evapotranspiration: float = Field(..., description="Potential evapotranspiration")
     vapor_pressure_deficit: float = Field(..., description="Vapor pressure deficit")
+
+    @field_validator('assessment_date')
+    @classmethod
+    def date_must_not_be_past(cls, v):
+        if v < date.today():
+            raise ValueError('Assessment date cannot be in the past. Please select today or a future date.')
+        return v
 
 class LocationResponse(BaseModel):
     latitude: float
