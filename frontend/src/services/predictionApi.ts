@@ -44,6 +44,18 @@ export const predictionApi = {
     }
   },
 
+  async searchLocations(query: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`/api/v1/locations/search?q=${encodeURIComponent(query)}`);
+      return response.data.results || [];
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 500) {
+        throw new Error(error.response.data?.detail || 'Location API is not configured.');
+      }
+      throw new Error('Failed to fetch locations.');
+    }
+  },
+
   downloadPredictionReport(predictionId: string): void {
     // We navigate to the endpoint to trigger the browser download directly
     window.location.href = `${API_BASE_URL}/api/v1/predictions/${predictionId}/report`;

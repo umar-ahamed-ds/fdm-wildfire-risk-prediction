@@ -66,9 +66,20 @@ const PredictionResult: React.FC<PredictionResultProps> = ({ response, requestDa
             <div className="bg-gray-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
               <MapPin className="w-5 h-5 text-gray-400 mb-1" />
               <span className="text-xs text-gray-500 uppercase tracking-wide">Location</span>
-              <span className="font-medium text-gray-800 mt-1">
-                {response.location.latitude.toFixed(4)}, {response.location.longitude.toFixed(4)}
-              </span>
+              {response.location.name ? (
+                <>
+                  <span className="font-medium text-gray-900 mt-1 line-clamp-1" title={response.location.name}>
+                    {response.location.name}
+                  </span>
+                  <span className="text-xs text-gray-500 mt-0.5">
+                    {response.location.latitude.toFixed(4)}, {response.location.longitude.toFixed(4)}
+                  </span>
+                </>
+              ) : (
+                <span className="font-medium text-gray-800 mt-1">
+                  {response.location.latitude.toFixed(4)}, {response.location.longitude.toFixed(4)}
+                </span>
+              )}
             </div>
             <div className="bg-gray-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
               <Calendar className="w-5 h-5 text-gray-400 mb-1" />

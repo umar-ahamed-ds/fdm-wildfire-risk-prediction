@@ -94,9 +94,23 @@ const PredictionHistory: React.FC = () => {
                     {record.assessment_date}
                   </td>
                   <td className="p-3 text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                      {record.location.latitude.toFixed(2)}, {record.location.longitude.toFixed(2)}
+                    <div className="flex flex-col gap-0.5">
+                      {record.location.name ? (
+                        <>
+                          <span className="font-medium text-gray-900 truncate max-w-[200px]" title={record.location.name}>
+                            {record.location.name}
+                          </span>
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {record.location.latitude.toFixed(4)}, {record.location.longitude.toFixed(4)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                          {record.location.latitude.toFixed(4)}, {record.location.longitude.toFixed(4)}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-3">

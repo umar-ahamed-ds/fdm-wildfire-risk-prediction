@@ -1,4 +1,5 @@
 export interface PredictionRequest {
+  location_name?: string;
   latitude: number;
   longitude: number;
   assessment_date: string; // YYYY-MM-DD
@@ -20,6 +21,7 @@ export interface PredictionRequest {
 }
 
 export interface LocationResponse {
+  name?: string;
   latitude: number;
   longitude: number;
 }
@@ -41,6 +43,7 @@ export interface PredictionHistoryRecord {
   created_at: string;
   assessment_date: string;
   location: {
+    name?: string;
     latitude: number;
     longitude: number;
   };

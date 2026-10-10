@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.db.mongodb import client
 from app.core.config import settings
 from app.api.prediction import router as prediction_router
+from app.api.location import router as location_router
 from app.ml.predictor import predictor
 
 logging.basicConfig(
@@ -29,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(prediction_router, prefix="/api/v1")
+app.include_router(location_router, prefix="/api/v1")
 
 
 @app.on_event("startup")

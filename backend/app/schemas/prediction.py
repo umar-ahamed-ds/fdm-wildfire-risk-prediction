@@ -21,6 +21,7 @@ class PredictionRequest(BaseModel):
     reference_evapotranspiration: float = Field(..., description="Reference evapotranspiration")
     potential_evapotranspiration: float = Field(..., description="Potential evapotranspiration")
     vapor_pressure_deficit: float = Field(..., description="Vapor pressure deficit")
+    location_name: Optional[str] = Field(None, description="Name of the location")
 
     @field_validator('assessment_date')
     @classmethod
@@ -30,6 +31,7 @@ class PredictionRequest(BaseModel):
         return v
 
 class LocationResponse(BaseModel):
+    name: Optional[str] = None
     latitude: float
     longitude: float
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import type { PredictionRequest } from '../../types/prediction';
 import { MapPin, Calendar, CloudRain, Flame, Wind, AlertCircle } from 'lucide-react';
+import LocationSearch from './LocationSearch';
 
 interface PredictionFormProps {
   onSubmit: (data: PredictionRequest) => void;
@@ -13,7 +14,8 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, isLoading }) 
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    setValue,
+    formState: { errors, isSubmitted },
   } = useForm<PredictionRequest>({
     defaultValues: {
       latitude: undefined,
@@ -52,6 +54,19 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, isLoading }) 
     `w-full px-4 py-2 border rounded-lg focus:ring-2 ${focusColor} outline-none transition-colors ${error ? 'border-red-500 focus:border-red-500 bg-red-50/30' : 'border-gray-300'
     }`;
 
+  const handleLocationSelect = (loc: { name: string; latitude: number; longitude: number } | null) => {
+    if (loc) {
+      setValue('location_name', loc.name, { shouldValidate: true });
+      setValue('latitude', loc.latitude, { shouldValidate: true });
+      setValue('longitude', loc.longitude, { shouldValidate: true });
+    } else {
+      // Don't eagerly validate when clearing/typing so we don't spam the user with errors
+      setValue('location_name', undefined, { shouldValidate: false });
+      setValue('latitude', undefined as any, { shouldValidate: false });
+      setValue('longitude', undefined as any, { shouldValidate: false });
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
 
@@ -61,41 +76,17 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, isLoading }) 
           <MapPin className="w-5 h-5 text-blue-600" />
           <h3 className="text-lg font-semibold">Location</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude</label>
-            <p className="text-xs text-gray-500 mb-2">North/South positioning.</p>
-            <input
-              type="number"
-              step="any"
-              className={getBaseInputClass(errors.latitude, 'focus:ring-blue-500 focus:border-blue-500')}
-              placeholder="e.g., 7.29"
-              {...register('latitude', {
-                required: 'Please enter the latitude.',
-                min: { value: -90, message: 'Latitude cannot be less than -90' },
-                max: { value: 90, message: 'Latitude cannot be greater than 90' },
-                valueAsNumber: true
-              })}
-            />
-            <ErrorMsg error={errors.latitude} />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude</label>
-            <p className="text-xs text-gray-500 mb-2">East/West positioning.</p>
-            <input
-              type="number"
-              step="any"
-              className={getBaseInputClass(errors.longitude, 'focus:ring-blue-500 focus:border-blue-500')}
-              placeholder="e.g., 80.63"
-              {...register('longitude', {
-                required: 'Please enter the longitude.',
-                min: { value: -180, message: 'Longitude cannot be less than -180' },
-                max: { value: 180, message: 'Longitude cannot be greater than 180' },
-                valueAsNumber: true
-              })}
-            />
-            <ErrorMsg error={errors.longitude} />
-          </div>
+        
+        <div className="w-full">
+          {/* We use hidden inputs so react-hook-form can still validate them and they stay in the form data */}
+          <input type="hidden" {...register('location_name')} />
+          <input type="hidden" {...register('latitude', { required: 'Please select a valid location from the search results.' })} />
+          <input type="hidden" {...register('longitude', { required: 'Please select a valid location from the search results.' })} />
+          
+          <LocationSearch 
+            onLocationSelect={handleLocationSelect}
+            error={isSubmitted ? (errors.latitude?.message || (errors as any).location_name?.message) : undefined}
+          />
         </div>
       </section>
 
@@ -390,7 +381,7 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, isLoading }) 
         </div>
       </section>
 
-      {Object.keys(errors).length > 0 && (
+      {isSubmitted && Object.keys(errors).length > 0 && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-3 border border-red-100">
           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
           <p className="text-sm font-medium">Please correct the highlighted fields before assessing risk.</p>

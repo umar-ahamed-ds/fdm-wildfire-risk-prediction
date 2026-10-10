@@ -80,7 +80,7 @@ def make_prediction(request: PredictionRequest) -> PredictionResponse:
     date_features = derive_date_features(request.assessment_date)
     
     # 2. Combine all features into a dictionary
-    features_dict = request.model_dump(exclude={'assessment_date'})
+    features_dict = request.model_dump(exclude={'assessment_date', 'location_name'})
     features_dict.update(date_features)
     
     # 3. Create DataFrame
@@ -96,6 +96,7 @@ def make_prediction(request: PredictionRequest) -> PredictionResponse:
     prediction_data = {
         "assessment_date": request.assessment_date.isoformat(),
         "location": {
+            "name": request.location_name,
             "latitude": request.latitude,
             "longitude": request.longitude
         },
@@ -122,6 +123,7 @@ def make_prediction(request: PredictionRequest) -> PredictionResponse:
         model_name="XGBoost",
         assessment_date=request.assessment_date,
         location=LocationResponse(
+            name=request.location_name,
             latitude=request.latitude,
             longitude=request.longitude
         ),
